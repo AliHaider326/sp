@@ -1,0 +1,74 @@
+Server:
+import socket
+import threading
+
+host = '127.0.0.1'
+port = 1211
+
+server = socket.socket()
+server.bind((host, port))
+server.listen()
+
+print(f"[Server] Listening on {host}:{port}")
+
+clients = []
+
+def broadcast(msg, sender):
+    for client in clients:
+        if client != sender:
+            try:
+                client.send(msg.encode())
+            except:
+                # Remove broken connections
+                clients.remove(client)
+                client.close()
+
+def handle_client(c, ad):
+    print(f"\n[New Connection] {ad} connected")
+    clients.append(c)
+
+    while True:
+        try:
+            msg = c.recv(1024).decode()
+            if not msg:
+                break
+            print(f"[{ad}]: {msg}")
+            broadcast(f"[{ad}] {msg}", c)
+        except:
+            break
+
+    print(f"[Disconnected] {ad} disconnected")
+    if c in clients:
+        clients.remove(c)
+    c.close()
+
+while True:
+    c, addr = server.accept()
+    thread = threading.Thread(target=handle_client, args=(c, addr), daemon=True)
+    thread.start()
+
+Client:
+import socket, threading
+
+client = socket.socket()
+client.connect(("127.0.0.1", 1211))
+
+def receive():
+    while True:
+        try:
+            msg = client.recv(1024).decode()
+            if not msg: break
+            print("\n " + msg)
+        except:
+            break
+
+threading.Thread(target=receive, daemon=True).start()
+
+while True:
+    msg = input("\nEnter message('exit' to quit): ")
+    if msg.lower() == 'exit': break
+
+    client.send(msg.encode())
+
+client.close()
+print("\nDisconnected from server")
