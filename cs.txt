@@ -1,79 +1,81 @@
-Server
+Server:
 import socket
 import os
 import threading
-exit_flag = False
-def handle_receive(conn):
-global exit_flag
-try:
-while True:
-data = conn.recv(1024).decode()
-if not data:
-break
-if data.lower() == "exit":
-print("Client ended chat")
-exit_flag = True
-break
-if data.startswith("FILE:"):
-parts = data.split(":")
-filename = parts[1]
-filesize = int(parts[2])
-print("Receiving file: " + filename + " (" +
-str(filesize) + " bytes)")
-received = 0
-with open("received_" + filename, "wb") as f:
-while received < filesize:
-chunk = conn.recv(1024)
-if not chunk:
-break
-f.write(chunk)
-received += len(chunk)
-print("File '" + filename + "' received 
-successfully")
-else:
-print("Client:", data)
-except:
-pass
-def handle_send(conn):
-global exit_flag
 
-try:
-while not exit_flag:
-msg = input("You: ")
-if exit_flag:
-break
-if msg.lower() == "exit":
-conn.send(msg.encode())
-print("Closing connection...")
-exit_flag = True
-break
-if msg.startswith("FILE:"):
-filename = msg.split(":")[1]
-if os.path.exists(filename):
-filesize = os.path.getsize(filename)
-header = "FILE:" + filename + ":" + str(filesize)
-conn.send(header.encode())
-with open(filename, "rb") as f:
-chunk = f.read(1024)
-while chunk:
-conn.send(chunk)
-chunk = f.read(1024)
-print("File '" + filename + "' sent 
-successfully")
-else:
-print("File not found:", filename)
-else:
-conn.send(msg.encode())
-except:
-pass
-conn.close()
+exit_flag = False
+
+def handle_receive(conn):
+    global exit_flag
+    try:
+        while True:
+            data = conn.recv(1024).decode()
+            if not data:
+                break
+            if data.lower() == "exit":
+                print("Client ended chat")
+                exit_flag = True
+                break
+            if data.startswith("FILE:"):
+                parts = data.split(":")
+                filename = parts[1]
+                filesize = int(parts[2])
+                print(f"Receiving file: {filename} ({filesize} bytes)")
+                received = 0
+                with open("received_" + filename, "wb") as f:
+                    while received < filesize:
+                        chunk = conn.recv(1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        received += len(chunk)
+                print(f"File '{filename}' received successfully")
+            else:
+                print("Client:", data)
+    except:
+        pass
+
+def handle_send(conn):
+    global exit_flag
+    try:
+        while not exit_flag:
+            msg = input("You: ")
+            if exit_flag:
+                break
+            if msg.lower() == "exit":
+                conn.send(msg.encode())
+                print("Closing connection...")
+                exit_flag = True
+                break
+            if msg.startswith("FILE:"):
+                filename = msg.split(":")[1]
+                if os.path.exists(filename):
+                    filesize = os.path.getsize(filename)
+                    header = f"FILE:{filename}:{filesize}"
+                    conn.send(header.encode())
+                    with open(filename, "rb") as f:
+                        chunk = f.read(1024)
+                        while chunk:
+                            conn.send(chunk)
+                            chunk = f.read(1024)
+                    print(f"File '{filename}' sent successfully")
+                else:
+                    print("File not found:", filename)
+            else:
+                conn.send(msg.encode())
+    except:
+        pass
+    conn.close()
+
 s = socket.socket()
 s.bind(('localhost', 9000))
 s.listen(1)
 print("Waiting for connection...")
+
 conn, addr = s.accept()
 print("Got connection from", addr)
 print("Type messages to chat or 'FILE:filename' to send files")
+
 recv_thread = threading.Thread(target=handle_receive, args=(conn,))
 send_thread = threading.Thread(target=handle_send, args=(conn,))
 recv_thread.start()
@@ -82,78 +84,79 @@ recv_thread.join()
 send_thread.join()
 s.close()
 
-Client
+Client:
 import socket
 import os
 import threading
-exit_flag = False
-def handle_receive(s):
-global exit_flag
-try:
-while True:
-data = s.recv(1024).decode()
-if not data:
-break
-if data.lower() == "exit":
-print("Server ended chat")
-exit_flag = True
-break
-if data.startswith("FILE:"):
-parts = data.split(":")
-filename = parts[1]
-filesize = int(parts[2])
-print("Receiving file: " + filename + " (" +
-str(filesize) + " bytes)")
-received = 0
-with open("received_" + filename, "wb") as f:
-while received < filesize:
-chunk = s.recv(1024)
-if not chunk:
-break
-f.write(chunk)
-received += len(chunk)
-print("File '" + filename + "' received 
-successfully")
-else:
-print("Server:", data)
-except:
-pass
-def handle_send(s):
-global exit_flag
-try:
-while not exit_flag:
-msg = input("You: ")
-if exit_flag:
-break
-if msg.lower() == "exit":
 
-s.send(msg.encode())
-print("Closing connection...")
-exit_flag = True
-break
-if msg.startswith("FILE:"):
-filename = msg.split(":")[1]
-if os.path.exists(filename):
-filesize = os.path.getsize(filename)
-header = "FILE:" + filename + ":" + str(filesize)
-s.send(header.encode())
-with open(filename, "rb") as f:
-chunk = f.read(1024)
-while chunk:
-s.send(chunk)
-chunk = f.read(1024)
-print("File '" + filename + "' sent 
-successfully")
-else:
-print("File not found:", filename)
-else:
-s.send(msg.encode())
-except:
-pass
-s.close()
+exit_flag = False
+
+def handle_receive(s):
+    global exit_flag
+    try:
+        while True:
+            data = s.recv(1024).decode()
+            if not data:
+                break
+            if data.lower() == "exit":
+                print("Server ended chat")
+                exit_flag = True
+                break
+            if data.startswith("FILE:"):
+                parts = data.split(":")
+                filename = parts[1]
+                filesize = int(parts[2])
+                print(f"Receiving file: {filename} ({filesize} bytes)")
+                received = 0
+                with open("received_" + filename, "wb") as f:
+                    while received < filesize:
+                        chunk = s.recv(1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        received += len(chunk)
+                print(f"File '{filename}' received successfully")
+            else:
+                print("Server:", data)
+    except:
+        pass
+
+def handle_send(s):
+    global exit_flag
+    try:
+        while not exit_flag:
+            msg = input("You: ")
+            if exit_flag:
+                break
+            if msg.lower() == "exit":
+                s.send(msg.encode())
+                print("Closing connection...")
+                exit_flag = True
+                break
+            if msg.startswith("FILE:"):
+                filename = msg.split(":")[1]
+                if os.path.exists(filename):
+                    filesize = os.path.getsize(filename)
+                    header = f"FILE:{filename}:{filesize}"
+                    s.send(header.encode())
+                    with open(filename, "rb") as f:
+                        chunk = f.read(1024)
+                        while chunk:
+                            s.send(chunk)
+                            chunk = f.read(1024)
+                    print(f"File '{filename}' sent successfully")
+                else:
+                    print("File not found:", filename)
+            else:
+                s.send(msg.encode())
+    except:
+        pass
+    s.close()
+
 s = socket.socket()
 s.connect(('localhost', 9000))
 print("Type messages to chat or 'FILE:filename' to send files")
+
 recv_thread = threading.Thread(target=handle_receive, args=(s,))
 send_thread = threading.Thread(target=handle_send, args=(s,))
 recv_thread.start()
